@@ -1,0 +1,8 @@
+node_modules
+.next
+.git
+.env.local
+memory/daily
+memory/state
+memory/research/completed
+memory/uploads

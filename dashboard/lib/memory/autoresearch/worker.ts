@@ -78,7 +78,7 @@ export class AutoresearchWorker {
         await this.daily.append(`**Tacit Proposal:** ${proposal}`, "autoresearcher", ["tacit_proposal"]);
       }
 
-      await this.queue.complete(item.id, result);
+      await this.queue.complete(item.id, { ...result, partial: result.partial ?? false });
       return item;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
