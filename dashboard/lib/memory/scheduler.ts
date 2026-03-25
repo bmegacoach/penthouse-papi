@@ -23,6 +23,16 @@ const state: SchedulerState = {
 let heartbeatTask: ScheduledTask | null = null;
 let autoresearchTask: ScheduledTask | null = null;
 let consolidationTask: ScheduledTask | null = null;
+let hypereditTask: ScheduledTask | null = null;
+
+async function runHyperedit(): Promise<void> {
+  try {
+    const { processAllJobs } = await import("@/lib/hyperedit/worker");
+    await processAllJobs();
+  } catch (err) {
+    console.error("[Scheduler] Hyperedit error:", err instanceof Error ? err.message : err);
+  }
+}
 
 async function runHeartbeat(): Promise<void> {
   if (state.jobs.heartbeat.status === "running") return;
@@ -89,17 +99,22 @@ export function startScheduler(): void {
   // Consolidation: 2 AM daily
   consolidationTask = cron.schedule("0 2 * * *", () => { runConsolidation(); });
 
-  state.running = true;
-  console.log("[Scheduler] Started — heartbeat(15m), autoresearch(4h), consolidation(2AM)");
+  // Hyperedit: every 2 minutes (process queued video jobs)
+  hypereditTask = cron.schedule("*/2 * * * *", () => { runHyperedit(); });
 
-  // Run heartbeat immediately on start
+  state.running = true;
+  console.log("[Scheduler] Started — heartbeat(15m), autoresearch(4h), consolidation(2AM), hyperedit(2m)");
+
+  // Run heartbeat + hyperedit immediately on start
   runHeartbeat();
+  runHyperedit();
 }
 
 export function stopScheduler(): void {
   heartbeatTask?.stop();
   autoresearchTask?.stop();
   consolidationTask?.stop();
+  hypereditTask?.stop();
   state.running = false;
   console.log("[Scheduler] Stopped");
 }
@@ -109,10 +124,11 @@ export function getSchedulerState(): SchedulerState {
 }
 
 // Manual trigger for testing
-export async function triggerJob(job: "heartbeat" | "autoresearch" | "consolidation"): Promise<void> {
+export async function triggerJob(job: "heartbeat" | "autoresearch" | "consolidation" | "hyperedit"): Promise<void> {
   switch (job) {
     case "heartbeat": return runHeartbeat();
     case "autoresearch": return runAutoresearch();
     case "consolidation": return runConsolidation();
+    case "hyperedit": return runHyperedit();
   }
 }
