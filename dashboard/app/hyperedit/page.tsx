@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Upload,
   Scissors,
@@ -64,6 +65,7 @@ export default function HypereditPage() {
   const [jobs, setJobs] = useState<HypereditJob[]>([]);
   const [selectedBrand, setSelectedBrand] = useState("Goldbackbond (GBB)");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const refreshJobs = () => {
     fetch("/api/hyperedit/jobs")
@@ -397,7 +399,8 @@ export default function HypereditPage() {
                 return (
                   <div
                     key={job.id}
-                    className="group rounded-lg border border-pp-border/50 bg-[#0A0A0F]/50 p-4 transition-all duration-200 hover:border-pp-border"
+                    onClick={() => router.push(`/hyperedit/${job.id}`)}
+                    className="group cursor-pointer rounded-lg border border-pp-border/50 bg-[#0A0A0F]/50 p-4 transition-all duration-200 hover:border-pp-purple/30 hover:bg-pp-surface-raised"
                   >
                     <div className="mb-2 flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">

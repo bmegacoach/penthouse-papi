@@ -90,11 +90,14 @@ Generate exactly ${job.maxClips} clips optimized for the target platforms.`;
     const clipCount = clipPlan.clips?.length || 0;
     await updateJob(job.id, { status: "rendering", progress: 90 });
 
-    // Stage 4: Done
+    // Stage 4: Done — store clip plan with the job
     await updateJob(job.id, {
       status: "ready",
       progress: 100,
       clips: clipCount,
+      clipPlan: clipPlan.clips || [],
+      contentSummary: clipPlan.content_summary || "",
+      brandAlignment: clipPlan.brand_alignment || "",
     });
 
     // Store clip plan in memory for retrieval
