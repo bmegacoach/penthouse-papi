@@ -4,7 +4,7 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Build
 FROM base AS builder
@@ -26,8 +26,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Memory directory (will be mounted as volume)
-RUN mkdir -p /app/memory && chown nextjs:nodejs /app/memory
+# Memory + uploads directories (will be mounted as volume)
+RUN mkdir -p /app/memory /app/memory/uploads /app/memory/state /app/memory/research /app/memory/daily && chown -R nextjs:nodejs /app/memory
 
 USER nextjs
 EXPOSE 4000
