@@ -9,6 +9,7 @@ import {
   Play,
   RotateCcw,
   Download,
+  CalendarDays,
   Palette,
   Type,
   MonitorSmartphone,
@@ -194,6 +195,29 @@ export default function StudioPage() {
               >
                 <Download className="h-3.5 w-3.5" />
                 Render
+              </button>
+              <button
+                onClick={() => {
+                  const date = new Date().toISOString().split("T")[0];
+                  fetch("/api/calendar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      title: selectedComp.label + " — " + (props.headline || props.text || "Untitled"),
+                      date,
+                      platform: "reels",
+                      brand: "CoachAI",
+                      contentType: "video",
+                      status: "scheduled",
+                      compositionId: selectedComp.id,
+                    }),
+                  }).then(() => alert("Scheduled!"));
+                }}
+                className="flex items-center gap-2 rounded-lg border border-pp-border px-3 py-2 text-xs text-pp-muted transition-colors hover:text-pp-text hover:border-pp-purple/30"
+                title="Schedule to Calendar"
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                Schedule
               </button>
 
               <div className="ml-4 flex items-center gap-2 text-[10px] text-pp-muted">

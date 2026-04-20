@@ -16,7 +16,7 @@ async function saveStore(items: Concept[]): Promise<void> {
 
 export async function listConcepts(brand?: string, status?: string): Promise<Concept[]> {
   let items = await readStore();
-  if (brand && brand !== "all") items = items.filter(c => c.brand.toLowerCase().includes(brand));
+  if (brand && brand !== "all") items = items.filter(c => c.brand.toLowerCase().includes(brand.toLowerCase()));
   if (status) items = items.filter(c => c.status === status);
   return items.sort((a, b) => b.created_at.localeCompare(a.created_at));
 }

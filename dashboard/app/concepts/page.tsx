@@ -1,8 +1,20 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Lightbulb, Plus, Trash2, ChevronRight } from "lucide-react";
+import { Lightbulb, Plus, Trash2, ChevronRight, Scissors, FlaskConical, CheckCircle2 } from "lucide-react";
 import type { Concept } from "@/lib/concepts/types";
+import { useBrand } from "@/lib/brand-context";
+import { useRouter } from "next/navigation";
+
+interface ResearchSuggestion {
+  id: string;
+  question: string;
+  summary: string;
+  sources: number;
+  priority: string;
+  suggestedTitle: string;
+  suggestedTags: string[];
+}
 
 const STATUS_ORDER: Concept["status"][] = ["draft", "review", "approved", "published"];
 
@@ -16,6 +28,8 @@ const STATUS_COLORS: Record<Concept["status"], string> = {
 const BRANDS = ["GBB", "CoachAI", "OpenChief"];
 
 export default function ConceptsPage() {
+  const router = useRouter();
+  const globalBrand = useBrand();
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterBrand, setFilterBrand] = useState("all");
@@ -29,6 +43,7 @@ export default function ConceptsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState("");
+  const [suggestions, setSuggestions] = useState<ResearchSuggestion[]>([]);
 
   const fetchConcepts = useCallback(async () => {
     setLoading(true);
@@ -46,7 +61,40 @@ export default function ConceptsPage() {
     }
   }, [filterBrand, filterStatus]);
 
+  // Sync global brand switcher → local filter
+  useEffect(() => {
+    const brandMap: Record<string, string> = { all: "all", gbb: "gbb", coach: "coachai", open: "openchief" };
+    setFilterBrand(brandMap[globalBrand] || "all");
+  }, [globalBrand]);
+
   useEffect(() => { fetchConcepts(); }, [fetchConcepts]);
+
+  // Fetch research-driven suggestions
+  useEffect(() => {
+    fetch("/api/concepts/suggestions")
+      .then(r => r.json())
+      .then(d => setSuggestions(d.suggestions || []))
+      .catch(() => {});
+  }, []);
+
+  const approveResearchSuggestion = async (suggestion: ResearchSuggestion) => {
+    const res = await fetch("/api/concepts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: suggestion.suggestedTitle,
+        description: suggestion.summary,
+        brand: "GBB",
+        tags: suggestion.suggestedTags,
+        status: "draft",
+        researchItemId: suggestion.id,
+      }),
+    });
+    if (res.ok) {
+      setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+      fetchConcepts();
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +137,32 @@ export default function ConceptsPage() {
       body: JSON.stringify({ status: nextStatus }),
     });
     fetchConcepts();
+  };
+
+  const sendToHyperedit = async (concept: Concept) => {
+    const res = await fetch("/api/hyperedit/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: concept.title,
+        source: "url",
+        sourcePath: "concept-pipeline",
+        brand: concept.brand,
+        platforms: ["reels", "tiktok", "shorts"],
+        maxClips: 3,
+        conceptId: concept.id,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      // Link job back to concept
+      await fetch(`/api/concepts/${concept.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: data.job?.id }),
+      });
+      router.push(`/hyperedit/${data.job?.id || ""}`);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -180,6 +254,38 @@ export default function ConceptsPage() {
         </div>
       )}
 
+      {/* Research-driven suggestions */}
+      {suggestions.length > 0 && (
+        <div className="fade-up rounded-xl border border-pp-gold/30 bg-pp-gold/5 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <FlaskConical className="h-4 w-4 text-pp-gold" />
+            <span className="text-xs font-semibold text-pp-gold">Research Suggestions</span>
+            <span className="rounded-full bg-pp-gold/20 px-2 py-0.5 text-[10px] font-bold text-pp-gold">{suggestions.length}</span>
+          </div>
+          <div className="space-y-2">
+            {suggestions.slice(0, 3).map(s => (
+              <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-pp-border/50 bg-[#0A0A0F] px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-pp-text truncate">{s.suggestedTitle}</p>
+                  <p className="text-[10px] text-pp-muted truncate">{s.summary.slice(0, 100)}...</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="rounded border border-pp-gold/30 px-1 py-0.5 text-[10px] text-pp-gold">research</span>
+                    <span className="text-[10px] text-pp-muted">{s.sources} sources</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => approveResearchSuggestion(s)}
+                  className="flex items-center gap-1 rounded-lg bg-pp-purple px-3 py-1.5 text-[10px] font-medium text-white hover:bg-pp-purple/80 transition-colors shrink-0"
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  Approve
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="fade-up fade-up-2 flex items-center gap-3 flex-wrap">
         <select
@@ -215,17 +321,17 @@ export default function ConceptsPage() {
         ) : (
           <div className="divide-y divide-pp-border">
             {/* Table header */}
-            <div className="grid grid-cols-[1fr_100px_80px_120px_40px] gap-4 px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-pp-muted">
+            <div className="grid grid-cols-[1fr_100px_80px_120px_80px] gap-4 px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-pp-muted">
               <span>Title / Description</span>
               <span>Brand</span>
               <span>Tags</span>
               <span>Status</span>
-              <span></span>
+              <span>Actions</span>
             </div>
             {concepts.map(concept => (
               <div
                 key={concept.id}
-                className="grid grid-cols-[1fr_100px_80px_120px_40px] gap-4 px-4 py-3 items-center hover:bg-pp-surface/50 transition-colors"
+                className="grid grid-cols-[1fr_100px_80px_120px_80px] gap-4 px-4 py-3 items-center hover:bg-pp-surface/50 transition-colors"
               >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium text-pp-text">{concept.title}</div>
@@ -250,13 +356,24 @@ export default function ConceptsPage() {
                   {concept.status}
                   {concept.status !== "published" && <ChevronRight className="h-3 w-3" />}
                 </button>
-                <button
-                  onClick={() => handleDelete(concept.id)}
-                  className="rounded p-1 text-pp-muted hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex items-center gap-1">
+                  {concept.status === "approved" && (
+                    <button
+                      onClick={() => sendToHyperedit(concept)}
+                      className="rounded p-1 text-pp-muted hover:text-pp-purple hover:bg-pp-purple/10 transition-colors"
+                      title="Send to Hyperedit"
+                    >
+                      <Scissors className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(concept.id)}
+                    className="rounded p-1 text-pp-muted hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

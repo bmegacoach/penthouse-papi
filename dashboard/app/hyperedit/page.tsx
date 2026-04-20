@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HypereditJob } from "@/lib/hyperedit/types";
+import { useBrand, matchesBrand } from "@/lib/brand-context";
 
 const platforms = [
   { id: "reels", label: "Reels", icon: Smartphone },
@@ -54,6 +55,7 @@ function getBrandShortName(brand: string): string {
 }
 
 export default function HypereditPage() {
+  const globalBrand = useBrand();
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["reels", "shorts"]);
   const [maxClips, setMaxClips] = useState(5);
   const [dragOver, setDragOver] = useState(false);
@@ -193,7 +195,8 @@ export default function HypereditPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const runningJobs = jobs.filter((j) => j.status !== "ready" && j.status !== "failed");
+  const filteredJobs = jobs.filter((j) => matchesBrand(globalBrand, j.brand));
+  const runningJobs = filteredJobs.filter((j) => j.status !== "ready" && j.status !== "failed");
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -373,7 +376,7 @@ export default function HypereditPage() {
 
       {/* Job list */}
       <div className="fade-up fade-up-4">
-        {jobs.length === 0 ? (
+        {filteredJobs.length === 0 ? (
           <div className="rounded-xl border border-pp-border bg-pp-surface p-8">
             <div className="flex flex-col items-center justify-center gap-3 text-center grid-pattern rounded-lg p-8">
               <Scissors className="h-8 w-8 text-pp-muted/40" />
@@ -390,7 +393,7 @@ export default function HypereditPage() {
             </div>
 
             <div className="space-y-3">
-              {jobs.map((job) => {
+              {filteredJobs.map((job) => {
                 const cfg = statusConfig[job.status] ?? statusConfig.queued;
                 const StatusIcon = cfg.icon;
                 const brandColor = getBrandColor(job.brand);

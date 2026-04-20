@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getEventLogger, getResearchQueue } from "@/lib/memory/server";
 import { listJobs } from "@/lib/hyperedit/jobs";
+import { listEntries } from "@/lib/calendar/store";
 
 export async function GET() {
   try {
@@ -19,18 +20,21 @@ export async function GET() {
     const rendering = hypeditJobs.filter(j => ["planning", "transcribing", "rendering"].includes(j.status)).length;
     const approved = hypeditJobs.filter(j => j.status === "ready").length;
 
-    // Calendar data for next 7 days (from hyperedit jobs by date)
+    // Calendar data for next 7 days from real calendar entries
+    let calEntries: any[] = [];
+    try { calEntries = await listEntries(); } catch {}
+
     const calendar: { date: string; video: number; image: number; copy: number }[] = [];
     for (let i = -1; i < 6; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
       const dateStr = d.toISOString().split("T")[0];
-      const dayJobs = hypeditJobs.filter(j => j.created_at?.startsWith(dateStr));
+      const dayEntries = calEntries.filter(e => e.date === dateStr);
       calendar.push({
         date: dateStr,
-        video: dayJobs.length,
-        image: 0,
-        copy: 0,
+        video: dayEntries.filter(e => e.contentType === "video").length,
+        image: dayEntries.filter(e => e.contentType === "image").length,
+        copy: dayEntries.filter(e => e.contentType === "copy").length,
       });
     }
 

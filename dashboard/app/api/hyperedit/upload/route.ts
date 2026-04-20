@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       filename,
-      path: filePath,
+      path: filePath.replace(/\\/g, "/"),
       size: file.size,
       sizeHuman: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
       originalName: file.name,

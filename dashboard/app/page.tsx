@@ -6,7 +6,12 @@ import {
   Video,
   Clock,
   CheckCircle2,
+  ArrowRight,
+  Lightbulb,
+  Scissors,
+  CalendarDays,
 } from "lucide-react";
+import Link from "next/link";
 import { StatCard } from "@/components/command-center/stat-card";
 import { CalendarStrip } from "@/components/command-center/calendar-strip";
 import { QuickActions } from "@/components/command-center/quick-actions";
@@ -23,6 +28,12 @@ interface Stats {
   research_queued: number;
 }
 
+interface FunnelStage {
+  stage: string;
+  count: number;
+  color: string;
+}
+
 export default function CommandCenter() {
   const [stats, setStats] = useState<Stats>({
     completed_today: 0,
@@ -33,13 +44,20 @@ export default function CommandCenter() {
     research_active: 0,
     research_queued: 0,
   });
+  const [funnel, setFunnel] = useState<FunnelStage[]>([]);
 
   useEffect(() => {
-    fetch("/api/stats")
-      .then((r) => r.json())
-      .then((data) => setStats(data))
-      .catch(() => {});
+    fetch("/api/stats").then(r => r.json()).then(setStats).catch(() => {});
+    fetch("/api/analytics/funnel").then(r => r.json()).then(d => setFunnel(d.stages || [])).catch(() => {});
   }, []);
+
+  const funnelLinks: Record<string, string> = {
+    Concepts: "/concepts",
+    Jobs: "/hyperedit",
+    Clips: "/studio",
+    Scheduled: "/calendar",
+    Published: "/analytics",
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -58,7 +76,7 @@ export default function CommandCenter() {
         <StatCard
           label="Today's Posts"
           value={stats.completed_today}
-          change="+3 from yesterday"
+          change={`${stats.research_active} research active`}
           changeType="up"
           icon={Send}
           accentColor="#6C63FF"
@@ -75,7 +93,7 @@ export default function CommandCenter() {
         <StatCard
           label="Rendering"
           value={stats.rendering}
-          change="~14 min remaining"
+          change="Active jobs"
           changeType="neutral"
           icon={Video}
           accentColor="#6C63FF"
@@ -83,7 +101,7 @@ export default function CommandCenter() {
         <StatCard
           label="Approved"
           value={stats.approved}
-          change="This week"
+          change="Ready to schedule"
           changeType="up"
           icon={CheckCircle2}
           accentColor="#22C55E"
@@ -91,20 +109,47 @@ export default function CommandCenter() {
         />
       </div>
 
+      {/* Pipeline Funnel */}
+      {funnel.length > 0 && (
+        <div className="fade-up fade-up-3 rounded-xl border border-pp-border bg-pp-surface p-5">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-pp-muted">Pipeline Health</h3>
+          <div className="flex items-center gap-2">
+            {funnel.map((stage, i) => (
+              <div key={stage.stage} className="flex items-center gap-2">
+                <Link
+                  href={funnelLinks[stage.stage] || "/"}
+                  className="group flex flex-col items-center gap-1 rounded-lg border border-pp-border/50 bg-[#0A0A0F] px-4 py-3 transition-all hover:border-pp-border"
+                >
+                  <span className="text-lg font-bold tabular-nums" style={{ color: stage.color }}>
+                    {stage.count}
+                  </span>
+                  <span className="text-[10px] text-pp-muted group-hover:text-pp-text transition-colors">
+                    {stage.stage}
+                  </span>
+                </Link>
+                {i < funnel.length - 1 && (
+                  <ArrowRight className="h-3.5 w-3.5 text-pp-muted/40 shrink-0" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Calendar strip */}
-      <div className="fade-up fade-up-3">
+      <div className="fade-up fade-up-4">
         <CalendarStrip calendarData={stats.calendar} />
       </div>
 
       {/* Bottom grid: Jobs + Actions + Fleet */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-1 fade-up fade-up-4">
+        <div className="lg:col-span-1 fade-up fade-up-5">
           <ActiveJobs />
         </div>
-        <div className="lg:col-span-1 fade-up fade-up-5">
+        <div className="lg:col-span-1 fade-up fade-up-6">
           <QuickActions />
         </div>
-        <div className="lg:col-span-1 fade-up fade-up-6">
+        <div className="lg:col-span-1 fade-up fade-up-7">
           <FleetStatus />
         </div>
       </div>

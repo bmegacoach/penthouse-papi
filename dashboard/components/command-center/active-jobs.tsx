@@ -6,51 +6,6 @@ import { Scissors, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useBrand, matchesBrand } from "@/lib/brand-context";
 import type { HypereditJob } from "@/lib/hyperedit/types";
 
-// Mock data — will be replaced with Supabase real-time
-const mockJobs: HypereditJob[] = [
-  {
-    id: "1",
-    name: "GBB Podcast Ep. 12 — Gold Market Update",
-    status: "rendering",
-    progress: 67,
-    clips: 5,
-    brand: "GBB",
-    source: "file",
-    sourcePath: "",
-    platforms: [],
-    maxClips: 5,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    id: "2",
-    name: "CoachAI Tech Camp Promo — Summer 2026",
-    status: "planning",
-    progress: 25,
-    clips: 0,
-    brand: "COACH",
-    source: "file",
-    sourcePath: "",
-    platforms: [],
-    maxClips: 5,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    id: "3",
-    name: "OpenChief Demo Reel — Agent Fleet",
-    status: "ready",
-    progress: 100,
-    clips: 8,
-    brand: "OPEN",
-    source: "file",
-    sourcePath: "",
-    platforms: [],
-    maxClips: 8,
-    created_at: "",
-    updated_at: "",
-  },
-];
 
 const statusConfig = {
   queued: {
@@ -98,20 +53,17 @@ const brandColors: Record<string, string> = {
 };
 
 export function ActiveJobs() {
-  const [jobs, setJobs] = useState<HypereditJob[]>(mockJobs);
+  const [jobs, setJobs] = useState<HypereditJob[]>([]);
   const brand = useBrand();
 
   useEffect(() => {
     fetch("/api/hyperedit/jobs")
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setJobs(data);
-        }
+        const list = data?.jobs ?? (Array.isArray(data) ? data : []);
+        setJobs(list);
       })
-      .catch(() => {
-        // API not yet available — keep mock data
-      });
+      .catch(() => {});
   }, []);
 
   const filteredJobs = jobs.filter((j) => matchesBrand(brand, j.brand));

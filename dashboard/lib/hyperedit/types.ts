@@ -23,6 +23,7 @@ export interface HypereditJob {
   clipPlan?: ClipPlan[];
   contentSummary?: string;
   brandAlignment?: string;
+  conceptId?: string;
   error?: string;
   created_at: string;
   updated_at: string;

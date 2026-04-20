@@ -5,6 +5,9 @@ export interface Concept {
   brand: string;
   status: "draft" | "review" | "approved" | "published";
   tags: string[];
+  scenarioId?: string;
+  researchItemId?: string;
+  jobId?: string;
   created_at: string;
   updated_at: string;
 }
