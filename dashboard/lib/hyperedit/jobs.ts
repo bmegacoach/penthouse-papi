@@ -23,19 +23,23 @@ export async function listJobs(): Promise<HypereditJob[]> {
   return readJobs();
 }
 
+import type { AiVideoMeta } from "./types";
+
 export async function createJob(input: {
   name: string;
-  source: "file" | "url";
+  source: "file" | "url" | "ai";
   sourcePath: string;
   brand: string;
   platforms: string[];
   maxClips: number;
+  conceptId?: string;
+  aiVideo?: AiVideoMeta;
 }): Promise<HypereditJob> {
   const jobs = await readJobs();
   const job: HypereditJob = {
     id: randomUUID(),
     ...input,
-    status: "queued",
+    status: input.source === "ai" ? "generating" : "queued",
     progress: 0,
     clips: 0,
     created_at: new Date().toISOString(),

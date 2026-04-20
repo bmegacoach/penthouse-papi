@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Lightbulb, Plus, Trash2, ChevronRight, Scissors, FlaskConical, CheckCircle2 } from "lucide-react";
+import { Lightbulb, Plus, Trash2, ChevronRight, Scissors, FlaskConical, CheckCircle2, Film, Sparkles } from "lucide-react";
 import type { Concept } from "@/lib/concepts/types";
 import { useBrand } from "@/lib/brand-context";
 import { useRouter } from "next/navigation";
@@ -162,6 +162,37 @@ export default function ConceptsPage() {
         body: JSON.stringify({ jobId: data.job?.id }),
       });
       router.push(`/hyperedit/${data.job?.id || ""}`);
+    }
+  };
+
+  const generateAiVideo = async (concept: Concept, provider: "minimax" | "seedance") => {
+    const prompt = [concept.title, concept.description].filter(Boolean).join(" — ");
+    const res = await fetch("/api/hyperedit/ai-generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider,
+        prompt,
+        brand: concept.brand,
+        conceptId: concept.id,
+        aspectRatio: "9:16",
+        adMode: true,
+        name: `${provider === "minimax" ? "MiniMax" : "Seedance 2.0"} Ad — ${concept.title}`,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.jobId) {
+        await fetch(`/api/concepts/${concept.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId: data.jobId }),
+        });
+        router.push(`/hyperedit/${data.jobId}`);
+      }
+    } else {
+      const d = await res.json().catch(() => ({}));
+      alert(`AI video generation failed: ${d.error || res.status}`);
     }
   };
 
@@ -358,13 +389,29 @@ export default function ConceptsPage() {
                 </button>
                 <div className="flex items-center gap-1">
                   {concept.status === "approved" && (
-                    <button
-                      onClick={() => sendToHyperedit(concept)}
-                      className="rounded p-1 text-pp-muted hover:text-pp-purple hover:bg-pp-purple/10 transition-colors"
-                      title="Send to Hyperedit"
-                    >
-                      <Scissors className="h-3.5 w-3.5" />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => sendToHyperedit(concept)}
+                        className="rounded p-1 text-pp-muted hover:text-pp-purple hover:bg-pp-purple/10 transition-colors"
+                        title="Send to Hyperedit"
+                      >
+                        <Scissors className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => generateAiVideo(concept, "minimax")}
+                        className="rounded p-1 text-pp-muted hover:text-pp-gold hover:bg-pp-gold/10 transition-colors"
+                        title="Generate Ad with MiniMax"
+                      >
+                        <Film className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => generateAiVideo(concept, "seedance")}
+                        className="rounded p-1 text-pp-muted hover:text-pp-purple hover:bg-pp-purple/10 transition-colors"
+                        title="Generate Ad with Seedance 2.0"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => handleDelete(concept.id)}

@@ -31,6 +31,7 @@ const statusConfig: Record<
 > = {
   queued: { label: "Queued", color: "#94A3B8", icon: Loader2, animate: false },
   planning: { label: "Planning", color: "#F59E0B", icon: Loader2, animate: true },
+  generating: { label: "AI Generating", color: "#FFD700", icon: Loader2, animate: true },
   transcribing: { label: "Transcribing", color: "#6C63FF", icon: Loader2, animate: true },
   rendering: { label: "Rendering", color: "#6C63FF", icon: Scissors, animate: false },
   ready: { label: "Ready", color: "#22C55E", icon: CheckCircle2, animate: false },

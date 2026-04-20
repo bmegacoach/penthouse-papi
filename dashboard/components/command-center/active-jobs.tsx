@@ -20,6 +20,12 @@ const statusConfig = {
     icon: Loader2,
     animate: true,
   },
+  generating: {
+    label: "AI Generating",
+    color: "#FFD700",
+    icon: Loader2,
+    animate: true,
+  },
   transcribing: {
     label: "Transcribing",
     color: "#6C63FF",

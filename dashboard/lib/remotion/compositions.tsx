@@ -307,6 +307,78 @@ export interface CompositionConfig {
   }[];
 }
 
+// ── AdTemplate ──────────────────────────────────────────────────────
+
+export interface AdTemplateProps {
+  hook: string;
+  body: string;
+  cta: string;
+  brand: string;
+  accentColor: string;
+  bgColor: string;
+  videoUrl?: string;
+}
+
+export const AdTemplate: React.FC<AdTemplateProps> = ({ hook, body, cta, brand, accentColor, bgColor, videoUrl }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const hookOpacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
+  const hookScale = spring({ frame, fps, config: { damping: 12 } });
+  const bodyOpacity = interpolate(frame, [25, 45], [0, 1], { extrapolateRight: "clamp" });
+  const ctaSpring = spring({ frame: Math.max(0, frame - 70), fps, config: { damping: 10 } });
+  const ctaScale = interpolate(ctaSpring, [0, 1], [0.7, 1]);
+  const brandOpacity = interpolate(frame, [80, 100], [0, 1], { extrapolateRight: "clamp" });
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: bgColor || "#0A0A0F" }}>
+      {videoUrl ? (
+        <video
+          src={videoUrl}
+          style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", opacity: 0.55 }}
+          muted
+          autoPlay
+          playsInline
+        />
+      ) : null}
+      <AbsoluteFill style={{ background: `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.65) 100%)` }} />
+      <AbsoluteFill style={{ padding: 80, justifyContent: "space-between" }}>
+        <div style={{
+          fontSize: 120,
+          fontWeight: 900,
+          color: "white",
+          opacity: hookOpacity,
+          transform: `scale(${hookScale})`,
+          textShadow: `0 0 40px ${accentColor}`,
+          lineHeight: 1.05,
+        }}>
+          {hook.toUpperCase()}
+        </div>
+        <div style={{ color: "white", fontSize: 56, opacity: bodyOpacity, lineHeight: 1.25, maxWidth: "90%" }}>
+          {body}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 24 }}>
+          <div style={{
+            padding: "28px 56px",
+            background: accentColor,
+            color: "#000",
+            fontSize: 72,
+            fontWeight: 900,
+            borderRadius: 28,
+            transform: `scale(${ctaScale})`,
+            boxShadow: `0 0 60px ${accentColor}`,
+          }}>
+            {cta}
+          </div>
+          <div style={{ color: accentColor, fontSize: 44, fontWeight: 700, opacity: brandOpacity, letterSpacing: 3 }}>
+            {brand.toUpperCase()}
+          </div>
+        </div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
 export const COMPOSITIONS: CompositionConfig[] = [
   {
     id: "HelloWorld",
@@ -410,6 +482,33 @@ export const COMPOSITIONS: CompositionConfig[] = [
     editableProps: [
       { key: "text", label: "Hook Text", type: "text", default: "STOP SCROLLING" },
       { key: "accentColor", label: "Accent", type: "color", default: "#6C63FF" },
+    ],
+  },
+  {
+    id: "AdTemplate",
+    label: "Ad Template (Vertical) — AI Video Ready",
+    component: AdTemplate,
+    durationInFrames: 180,
+    fps: 30,
+    width: 1080,
+    height: 1920,
+    defaultProps: {
+      hook: "Most founders skip this",
+      body: "The 30-second move that compounds your revenue while you sleep.",
+      cta: "Tap to learn",
+      brand: "OpenChief",
+      accentColor: "#FFD700",
+      bgColor: "#0A0A0F",
+      videoUrl: "",
+    },
+    editableProps: [
+      { key: "hook", label: "Hook", type: "text", default: "Most founders skip this" },
+      { key: "body", label: "Body", type: "textarea", default: "The 30-second move that compounds your revenue while you sleep." },
+      { key: "cta", label: "CTA", type: "text", default: "Tap to learn" },
+      { key: "brand", label: "Brand", type: "text", default: "OpenChief" },
+      { key: "accentColor", label: "Accent", type: "color", default: "#FFD700" },
+      { key: "bgColor", label: "Background", type: "color", default: "#0A0A0F" },
+      { key: "videoUrl", label: "AI Video URL", type: "text", default: "" },
     ],
   },
 ];
