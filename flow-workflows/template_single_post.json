@@ -1,0 +1,118 @@
+{
+    "name": "Penthouse_Papi_Single_Post",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "cronExpression",
+                            "expression": "0 14 * * *"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.schedule",
+            "typeVersion": 1,
+            "position": [
+                0,
+                0
+            ],
+            "id": "schedule-trigger",
+            "name": "Daily Trigger (2PM)"
+        },
+        {
+            "parameters": {
+                "url": "https://penthouse-papi.api/generate-asset",
+                "method": "POST",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "calendar_item_id",
+                            "value": "={{$json.id}}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                200,
+                0
+            ],
+            "id": "generate-asset",
+            "name": "Generate Asset (Antigravity)"
+        },
+        {
+            "parameters": {
+                "table": {
+                    "__rl": true,
+                    "value": "video_assets",
+                    "mode": "id"
+                },
+                "operation": "insert",
+                "columns": {
+                    "mappingMode": "autoMapInputData"
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                400,
+                0
+            ],
+            "id": "store-asset",
+            "name": "Store in Supabase"
+        },
+        {
+            "parameters": {
+                "chatId": "SYDNEY_ID",
+                "text": "=New asset ready for review!\nURL: {{$json.render_url}}\n\nApprove: /approve {{$json.id}}\nRevise: /revise {{$json.id}}"
+            },
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1,
+            "position": [
+                600,
+                0
+            ],
+            "id": "notify-telegram",
+            "name": "Notify Sydney"
+        }
+    ],
+    "connections": {
+        "Daily Trigger (2PM)": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Asset (Antigravity)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Asset (Antigravity)": {
+            "main": [
+                [
+                    {
+                        "node": "Store in Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Store in Supabase": {
+            "main": [
+                [
+                    {
+                        "node": "Notify Sydney",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

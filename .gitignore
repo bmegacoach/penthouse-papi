@@ -1,0 +1,16 @@
+# session state
+.omc/
+**/.omc/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# node
+node_modules/
+*.log

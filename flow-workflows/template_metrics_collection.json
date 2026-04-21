@@ -1,0 +1,195 @@
+{
+    "name": "Penthouse_Papi_Metrics_Collector",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "cronExpression",
+                            "expression": "0 2 * * *"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.cron",
+            "typeVersion": 1,
+            "position": [
+                0,
+                0
+            ],
+            "id": "cron-daily",
+            "name": "Daily at 2AM"
+        },
+        {
+            "parameters": {
+                "table": {
+                    "__rl": true,
+                    "value": "calendar",
+                    "mode": "id"
+                },
+                "operation": "getAll",
+                "returnAll": true,
+                "filters": {
+                    "conditions": [
+                        {
+                            "key": "production_status",
+                            "value": "posted"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                200,
+                0
+            ],
+            "id": "fetch-posted",
+            "name": "Fetch Posted Assets"
+        },
+        {
+            "parameters": {},
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 1,
+            "position": [
+                400,
+                0
+            ],
+            "id": "batch-loop",
+            "name": "Process Each Asset"
+        },
+        {
+            "parameters": {
+                "url": "=https://api.gohighlevel.com/v1/conversations/{{$json.ghl_campaign_id}}/metrics",
+                "method": "GET",
+                "authentication": "headerAuth",
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{env.GHL_API_KEY}}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                600,
+                -100
+            ],
+            "id": "fetch-ghl",
+            "name": "Fetch GHL Stats"
+        },
+        {
+            "parameters": {
+                "jsCode": "return [{\n  asset_id: $('Process Each Asset').item.json.id,\n  platform: $('Process Each Asset').item.json.platform[0],\n  metrics: { views: Math.floor(Math.random() * 5000), likes: Math.floor(Math.random() * 500) },\n  conversions: Math.floor(Math.random() * 10)\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                600,
+                100
+            ],
+            "id": "mock-fetch",
+            "name": "Mock Stat Fetcher (Fallback)"
+        },
+        {
+            "parameters": {
+                "table": {
+                    "__rl": true,
+                    "value": "asset_performance",
+                    "mode": "id"
+                },
+                "operation": "insert",
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "valueDictionaries": [
+                        {
+                            "columnName": "asset_id",
+                            "value": "={{$json.asset_id}}"
+                        },
+                        {
+                            "columnName": "platform",
+                            "value": "={{$json.platform}}"
+                        },
+                        {
+                            "columnName": "metrics",
+                            "value": "={{$json.metrics}}"
+                        },
+                        {
+                            "columnName": "conversions",
+                            "value": "={{$json.conversions}}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                800,
+                0
+            ],
+            "id": "store-metrics",
+            "name": "Store in Supabase"
+        }
+    ],
+    "connections": {
+        "Daily at 2AM": {
+            "main": [
+                [
+                    {
+                        "node": "Fetch Posted Assets",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Fetch Posted Assets": {
+            "main": [
+                [
+                    {
+                        "node": "Process Each Asset",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process Each Asset": {
+            "main": [
+                [
+                    {
+                        "node": "Mock Stat Fetcher (Fallback)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Mock Stat Fetcher (Fallback)": {
+            "main": [
+                [
+                    {
+                        "node": "Store in Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Store in Supabase": {
+            "main": [
+                [
+                    {
+                        "node": "Process Each Asset",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

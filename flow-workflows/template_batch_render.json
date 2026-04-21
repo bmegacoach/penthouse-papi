@@ -1,0 +1,136 @@
+{
+    "name": "Penthouse_Papi_Batch_Render",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "cronExpression",
+                            "expression": "0 */4 * * *"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.cron",
+            "typeVersion": 1,
+            "position": [
+                0,
+                0
+            ],
+            "id": "cron-trigger",
+            "name": "Every 4 Hours"
+        },
+        {
+            "parameters": {
+                "table": {
+                    "__rl": true,
+                    "value": "video_assets",
+                    "mode": "id"
+                },
+                "operation": "getAll",
+                "returnAll": true,
+                "filters": {
+                    "conditions": [
+                        {
+                            "key": "status",
+                            "value": "queued"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                200,
+                0
+            ],
+            "id": "fetch-queue",
+            "name": "Fetch Queued Assets"
+        },
+        {
+            "parameters": {},
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 1,
+            "position": [
+                400,
+                0
+            ],
+            "id": "batch-loop",
+            "name": "Loop Items"
+        },
+        {
+            "parameters": {
+                "url": "https://penthouse-papi.api/render",
+                "method": "POST",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "asset_id",
+                            "value": "={{$json.id}}"
+                        },
+                        {
+                            "name": "template",
+                            "value": "={{$json.remotion_code}}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                600,
+                0
+            ],
+            "id": "trigger-render",
+            "name": "Trigger Render"
+        }
+    ],
+    "connections": {
+        "Every 4 Hours": {
+            "main": [
+                [
+                    {
+                        "node": "Fetch Queued Assets",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Fetch Queued Assets": {
+            "main": [
+                [
+                    {
+                        "node": "Loop Items",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Loop Items": {
+            "main": [
+                [
+                    {
+                        "node": "Trigger Render",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Trigger Render": {
+            "main": [
+                [
+                    {
+                        "node": "Loop Items",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

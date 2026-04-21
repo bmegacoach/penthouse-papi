@@ -1,0 +1,19 @@
+{
+  "tier": "business-unit",
+  "namespace": "penthouse-papi",
+  "rootPath": "./memory",
+  "sync": {
+    "enabled": true,
+    "upstream": "../../memory",
+    "sharedNamespaces": ["fleet", "infrastructure"],
+    "ownedNamespaces": ["content", "brands", "campaigns", "market-intel"]
+  },
+  "autoresearch": {
+    "sources": ["perplexity", "youtube", "reddit", "ahrefs"],
+    "schedule": "0 */4 * * *",
+    "maxConcurrent": 2
+  },
+  "consolidation": {
+    "schedule": "0 2 * * *"
+  }
+}
