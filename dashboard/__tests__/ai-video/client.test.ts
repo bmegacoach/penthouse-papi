@@ -63,11 +63,11 @@ describe("ai-video minimax adapter", () => {
   });
 });
 
-describe("ai-video seedance adapter", () => {
-  it("submits Seedance 2.0 generation", async () => {
+describe("ai-video seedance adapter (seedanceapi.org v2)", () => {
+  it("submits to /v2/generate and snaps duration + aspect to allowed values", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ id: "sd-xyz", status: "queued" }),
+      json: async () => ({ code: 200, data: { task_id: "sd-xyz" } }),
     });
     const { seedanceAdapter } = await import("@/lib/ai-video/seedance");
     const task = await seedanceAdapter.submit({
@@ -78,20 +78,57 @@ describe("ai-video seedance adapter", () => {
     });
     expect(task.taskId).toBe("sd-xyz");
     expect(task.provider).toBe("seedance");
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const call = fetchMock.mock.calls[0];
+    expect(call[0]).toContain("/v2/generate");
+    const body = JSON.parse(call[1].body);
     expect(body.model).toMatch(/seedance/);
     expect(body.aspect_ratio).toBe("9:16");
+    expect(body.duration).toBe(5);
   });
 
-  it("maps Seedance status variants", async () => {
+  it("snaps 12s → 10s and passes image URL for I2V", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ status: "COMPLETED", output: { video_url: "https://sd/v.mp4" } }),
+      json: async () => ({ code: 200, data: { task_id: "sd-i2v" } }),
+    });
+    const { seedanceAdapter } = await import("@/lib/ai-video/seedance");
+    await seedanceAdapter.submit({
+      provider: "seedance",
+      prompt: "animate this",
+      durationSec: 12,
+      aspectRatio: "16:9",
+      referenceImage: "https://img/foo.jpg",
+    });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.duration).toBe(10);
+    expect(body.images).toEqual(["https://img/foo.jpg"]);
+  });
+
+  it("parses data.response[0] as video URL on SUCCESS", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        code: 200,
+        message: "success",
+        data: { task_id: "sd-xyz", status: "SUCCESS", response: ["https://cdn/abc.mp4"] },
+      }),
     });
     const { seedanceAdapter } = await import("@/lib/ai-video/seedance");
     const t = await seedanceAdapter.poll("sd-xyz");
     expect(t.status).toBe("succeeded");
-    expect(t.videoUrl).toBe("https://sd/v.mp4");
+    expect(t.videoUrl).toBe("https://cdn/abc.mp4");
+  });
+
+  it("surfaces 402 No credit as a thrown error on submit", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 402,
+      json: async () => ({ code: 402, message: "No credit" }),
+    });
+    const { seedanceAdapter } = await import("@/lib/ai-video/seedance");
+    await expect(
+      seedanceAdapter.submit({ provider: "seedance", prompt: "x" }),
+    ).rejects.toThrow(/No credit|402/);
   });
 });
 
