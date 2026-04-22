@@ -79,6 +79,7 @@ async function poll(taskId: string): Promise<GenerateVideoTask> {
   const statusMap: Record<string, GenerateVideoTask["status"]> = {
     PENDING: "queued",
     QUEUED: "queued",
+    IN_PROGRESS: "running",
     PROCESSING: "running",
     RUNNING: "running",
     SUCCESS: "succeeded",
