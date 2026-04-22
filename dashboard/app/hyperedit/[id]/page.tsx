@@ -13,6 +13,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Sparkles,
+  Clapperboard,
 } from "lucide-react";
 import type { HypereditJob, ClipPlan } from "@/lib/hyperedit/types";
 
@@ -152,6 +153,16 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             {regenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
             {regenerating ? "Regenerating..." : "Regenerate Clips"}
           </button>
+          {job.status === "ready" && (
+            <button
+              onClick={() => router.push(`/studio?jobId=${job.id}`)}
+              className="flex items-center gap-1.5 rounded-lg border border-pp-gold/40 px-3 py-1.5 text-xs font-medium text-pp-gold hover:bg-pp-gold/10 transition-colors"
+              title="Preview this job in Studio with the AdTemplate composition"
+            >
+              <Clapperboard className="h-3.5 w-3.5" />
+              Preview in Studio
+            </button>
+          )}
         </div>
       </div>
 

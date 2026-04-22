@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Player } from "@remotion/player";
 import { cn } from "@/lib/utils";
 import {
@@ -22,11 +23,46 @@ const tabs = [
   { id: "agent" as const, label: "Agent Chat", icon: Bot },
 ];
 
+const AD_TEMPLATE = COMPOSITIONS.find((c) => c.id === "AdTemplate") || COMPOSITIONS[1];
+
 export default function StudioPage() {
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get("jobId");
   const [activeTab, setActiveTab] = useState<"remotion" | "agent">("remotion");
-  const [selectedComp, setSelectedComp] = useState<CompositionConfig>(COMPOSITIONS[1]); // DynamicKinetic default
-  const [props, setProps] = useState<Record<string, any>>(COMPOSITIONS[1].defaultProps);
+  const [selectedComp, setSelectedComp] = useState<CompositionConfig>(
+    jobId ? AD_TEMPLATE : COMPOSITIONS[1],
+  );
+  const [props, setProps] = useState<Record<string, any>>(
+    jobId ? { ...AD_TEMPLATE.defaultProps } : COMPOSITIONS[1].defaultProps,
+  );
   const [playing, setPlaying] = useState(false);
+
+  // When a jobId is passed in the URL, preload the AdTemplate with that job's data.
+  useEffect(() => {
+    if (!jobId) return;
+    let cancelled = false;
+    fetch(`/api/hyperedit/jobs/${jobId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled || !d.job) return;
+        const job = d.job;
+        const firstClip = Array.isArray(job.clipPlan) && job.clipPlan.length > 0 ? job.clipPlan[0] : null;
+        setSelectedComp(AD_TEMPLATE);
+        setProps({
+          ...AD_TEMPLATE.defaultProps,
+          hook: firstClip?.hook || job.aiVideo?.prompt?.slice(0, 60) || job.name,
+          body: firstClip?.script_outline || job.contentSummary || job.aiVideo?.prompt || "",
+          cta: "Watch more",
+          brand: job.brand || AD_TEMPLATE.defaultProps.brand,
+          videoUrl: job.source === "ai" ? job.sourcePath || "" : "",
+        });
+        setPlaying(false);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId]);
 
   const updateProp = (key: string, value: any) => {
     setProps((prev) => ({ ...prev, [key]: value }));

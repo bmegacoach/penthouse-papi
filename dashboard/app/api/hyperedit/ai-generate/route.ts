@@ -95,6 +95,20 @@ export async function GET(req: Request) {
       updates.progress = 100;
       updates.sourcePath = task.videoUrl;
       updates.clips = 1;
+      // Seed a clip plan so the clips store auto-syncs this AI-generated asset
+      updates.clipPlan = [
+        {
+          title: job.name,
+          hook: job.aiVideo.prompt.slice(0, 80),
+          description: `${job.aiVideo.provider} ${job.aiVideo.model || ""} — ${job.aiVideo.aspectRatio || "9:16"}, ${job.aiVideo.durationSec || 5}s${job.aiVideo.adMode ? ", ad mode" : ""}`.trim(),
+          platform: job.platforms[0] || "reels",
+          estimated_duration: `${job.aiVideo.durationSec || 5}s`,
+          script_outline: job.aiVideo.prompt,
+          approved: false,
+        },
+      ];
+      updates.contentSummary = `AI-generated ${job.aiVideo.provider} video from prompt.`;
+      updates.brandAlignment = job.brand;
     } else if (task.status === "failed") {
       updates.status = "failed";
       updates.error = task.error || "generation failed";
