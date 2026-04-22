@@ -1,7 +1,7 @@
 import type { GenerateVideoInput, GenerateVideoTask, VideoProvider } from "./types";
 import { minimaxAdapter } from "./minimax";
 import { seedanceAdapter } from "./seedance";
-import { cliEnabled, cliPoll, cliSubmit } from "./mmx-cli";
+import { cliEnabledFor, cliPoll, cliSubmit } from "./mmx-cli";
 
 const adapters = {
   minimax: minimaxAdapter,
@@ -15,14 +15,14 @@ function getAdapter(provider: VideoProvider) {
 }
 
 export async function generateVideo(input: GenerateVideoInput): Promise<GenerateVideoTask> {
-  if (cliEnabled()) {
+  if (cliEnabledFor(input.provider)) {
     return cliSubmit(input);
   }
   return getAdapter(input.provider).submit(input);
 }
 
 export async function pollVideo(provider: VideoProvider, taskId: string): Promise<GenerateVideoTask> {
-  if (cliEnabled()) {
+  if (cliEnabledFor(provider)) {
     return cliPoll(provider, taskId);
   }
   return getAdapter(provider).poll(taskId);
